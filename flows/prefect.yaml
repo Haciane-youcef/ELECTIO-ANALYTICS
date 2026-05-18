@@ -1,0 +1,58 @@
+# prefect.yaml
+# ─────────────────────────────────────────────────────────────────
+# Déploiements Prefect 3
+#   datagouv-minio-deployment  → datagouv_to_minio.py
+#
+# Stockage : LOCAL (volume Docker ./flows:/root/flows)
+# Pas besoin de prefect_aws ni de S3 pour stocker le flow.
+# ─────────────────────────────────────────────────────────────────
+name: ea-data-platform
+description: Déploiement data platform – DataGouv ingestion → MinIO Raw Zone
+version: 1.0.0
+
+# Pas de push/pull steps → stockage local via volume Docker
+build: null
+push: null
+pull: null
+
+deployments:
+
+  # ── DataGouv → MinIO Raw Zone ─────────────────────────────────────
+  - name: datagouv-minio-deployment
+    entrypoint: datagouv_to_minio.py:datagouv_to_minio_flow
+    work_pool:
+      name: default
+      job_variables:
+        working_dir: /root/flows
+    work_queue_name: default
+    tags:
+      - datagouv
+      - ingestion
+      - minio
+      - raw-zone
+    # Planification : toutes les nuits à 2h00 heure de Paris
+    schedules:
+      - cron: "0 2 * * *"
+        timezone: "Europe/Paris"
+        active: true
+    # Paramètres par défaut (surchargeable depuis l'UI)
+    parameters:
+      datasets:
+        - category: elections
+          filename: resultats-par-niveau-burvot-t1-france-entiere.xlsx
+          url: "https://static.data.gouv.fr/resources/election-presidentielle-des-10-et-24-avril-2022-resultats-definitifs-du-1er-tour/20220414-152612/resultats-par-niveau-burvot-t1-france-entiere.xlsx"
+        - category: elections
+          filename: resultats-par-niveau-burvot-t2-france-entiere.xlsx
+          url: "https://static.data.gouv.fr/resources/election-presidentielle-des-10-et-24-avril-2022-resultats-definitifs-du-2eme-tour/20220427-084513/resultats-par-niveau-burvot-t2-france-entiere.xlsx"
+        - category: chomage
+          filename: taux-chomage-trimestriel-departements.csv
+          url: "https://static.data.gouv.fr/resources/taux-de-chomage-trimestriels-departements-regions-france/20240101-000000/taux-chomage-trimestriel.csv"
+        - category: securite
+          filename: crimes-et-delits-enregistres.csv
+          url: "https://static.data.gouv.fr/resources/crimes-et-delits-enregistres-par-la-police-et-la-gendarmerie-nationales/20240101-000000/crimes-delits.csv"
+        - category: demographie
+          filename: population-communes-2021.csv
+          url: "https://static.data.gouv.fr/resources/population-des-communes-france/20230101-000000/population-communes.csv"
+        - category: education
+          filename: taux-reussite-baccalaureat.csv
+          url: "https://static.data.gouv.fr/resources/taux-de-reussite-au-baccalaureat/20230901-000000/taux-reussite-bac.csv"
